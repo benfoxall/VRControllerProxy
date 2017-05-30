@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>VRControllerProxy</title>
+    <link rel="stylesheet" href="milligram.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>VRControllerProxy</h1>
+      <div class="row">
+        <div class="column">
+          <h2>Broadcast</h2>
+          <p>send controller data from this machine</p>
+          <form action="broadcast">
+            <input type="text" name="id" value="" placeholder="some-id">
+            <input type="submit" value="broadcast">
+          </form>
+        </div>
+        <div class="column">
+          <h2>Connect</h2>
+          <p>recieve controller data</p>
+          <form action="connect">
+            <input type="text" name="id" value="" placeholder="some-id">
+            <input type="submit" value="connect">
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
