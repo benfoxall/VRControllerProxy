@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Connect</title>
+    <link rel="stylesheet" href="milligram.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Connect</h1>
+
+      <pre><code>connecting .. <strong>XYZ</strong></code></pre>
+      </ul>
+
+      <script src="peer.js"></script>
+      <script>
+        const id = location.search.match(/id=(.*)/)[1]
+
+        const peer = new Peer({host: location.hostname, port: location.port, path: '/peer'})
+
+        const conn = peer.connect(id)
+
+        const log = document.querySelector('pre code')
+
+        conn.on('open', function() {
+          console.log('connected')
+
+          log.innerText += '\nconnected';
+
+          conn.on('data', function(data){
+            console.log(data);
+            log.innerText += '\n' + data;
+          });
+        });
+
+      </script>
+
+    </div>
+  </body>
+</html>

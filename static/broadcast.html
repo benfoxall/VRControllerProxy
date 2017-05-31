@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Broadcast</title>
+    <link rel="stylesheet" href="milligram.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Broadcast</h1>
+      <button>Access Controller</button>
+
+      <pre><code>starting WebVR session
+accessing gamepads
+waiting for peer connection as <strong>XYZ</strong></code></pre>
+
+      </ul>
+      <button id="l">left</button> <button id="r">right</button>
+
+      <script src="peer.js"></script>
+      <script>
+        const id = location.search.match(/id=(.*)/)[1]
+        var peer = new Peer(id, {host: location.hostname, port: location.port, path: '/peer'})
+
+        let conn
+
+        const log = document.querySelector('pre code')
+
+        peer.on('connection', function(_conn) {
+          conn = _conn
+          log.innerText += '\nconnected'
+        })
+
+        l.addEventListener('click', () => {
+          if(conn) conn.send("LEFT")
+        }, false)
+        r.addEventListener('click', () => {
+          if(conn) conn.send("RIGHT")
+        }, false)
+
+      </script>
+
+    </div>
+  </body>
+</html>
