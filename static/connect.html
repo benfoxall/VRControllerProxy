@@ -9,29 +9,51 @@
     <div class="container">
       <h1>Connect</h1>
 
-      <pre><code>connecting .. <strong>XYZ</strong></code></pre>
-      </ul>
+      <pre><code id="log"></code></pre>
 
       <script src="peer.js"></script>
       <script>
+        const qs = document.querySelector.bind(document)
+
         const id = location.search.match(/id=(.*)/)[1]
 
         const peer = new Peer({host: location.hostname, port: location.port, path: '/peer'})
 
         const conn = peer.connect(id)
 
-        const log = document.querySelector('pre code')
+        peer.on('open', () => log(`Signalling: Connected as "${peer.id}"`, {color: 'green'}))
+        peer.on('error', () => log('Signalling: Error'))
+        peer.on('disconnected', () => log('Signalling: DISCONNECTED', {background: 'red', color: '#fff'}))
 
         conn.on('open', function() {
-          console.log('connected')
 
-          log.innerText += '\nconnected';
+          log(`Peer: connected to ${id}`, {color: '#08f'})
 
           conn.on('data', function(data){
-            console.log(data);
-            log.innerText += '\n' + data;
-          });
-        });
+            log(data)
+          })
+
+          conn.on('close', () => {
+            log('Peer: closed connection', {color: 'red', fontWeight: 800})
+          })
+        })
+
+
+
+
+        function log(message, style) {
+          const log = qs('#log')
+          while(log.childNodes.length > 100)
+            log.childNodes[0].remove()
+
+          const line = document.createElement('div')
+          line.innerText = message
+          Object.assign(line.style, style || {})
+
+          log.appendChild(line)
+          line.scrollIntoView()
+        }
+
 
       </script>
 

@@ -4,39 +4,76 @@
     <meta charset="utf-8">
     <title>Broadcast</title>
     <link rel="stylesheet" href="milligram.css">
+    <style media="screen">
+      #log {
+        max-height: 8em;
+        overflow: scroll;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <h1>Broadcast</h1>
-      <button>Access Controller</button>
+      <button id="connect">Connect Controllers</button>
 
-      <pre><code>starting WebVR session
-accessing gamepads
-waiting for peer connection as <strong>XYZ</strong></code></pre>
+      <pre><code id="log"></code></pre>
 
-      </ul>
-      <button id="l">left</button> <button id="r">right</button>
+      <div class="row" id="controllers">
+
+        <div class="column">
+          <pre id="controller-left"><code></code></pre>
+        </div>
+
+        <div class="column">
+          <pre id="controller-right"><code></code></pre>
+        </div>
+
+        <div class="column">
+          <pre id="controller-left"><code></code></pre>
+        </div>
+
+      </div>
 
       <script src="peer.js"></script>
       <script>
+        const qs = document.querySelector.bind(document)
+
         const id = location.search.match(/id=(.*)/)[1]
         var peer = new Peer(id, {host: location.hostname, port: location.port, path: '/peer'})
 
         let conn
 
-        const log = document.querySelector('pre code')
+        peer.on('open', () => log(`Signalling: Connected as "${id}"`, {color: 'green'}))
+        peer.on('error', () => log('Signalling: Error'))
+        peer.on('disconnected', () => log('Signalling: DISCONNECTED', {background: 'red', color: '#fff'}))
 
         peer.on('connection', function(_conn) {
           conn = _conn
-          log.innerText += '\nconnected'
+
+          log(`Peer(${conn.peer}): new connection`, {color: 'green'})
+
+          conn.on('open', () => {
+            log(`Peer(${conn.peer}): connected`, {color: '#08f'})
+          })
+
+          conn.on('close', () => {
+            log(`Peer(${conn.peer}): connection closed`, {color: 'red'})
+          })
         })
 
-        l.addEventListener('click', () => {
-          if(conn) conn.send("LEFT")
-        }, false)
-        r.addEventListener('click', () => {
-          if(conn) conn.send("RIGHT")
-        }, false)
+
+        function log(message, style) {
+          const log = qs('#log')
+          while(log.childNodes.length > 100)
+            log.childNodes[0].remove()
+
+          const line = document.createElement('div')
+          line.innerText = message
+          Object.assign(line.style, style || {})
+
+          log.appendChild(line)
+          line.scrollIntoView()
+        }
 
       </script>
 
