@@ -11,9 +11,17 @@
 
       <pre><code id="log"></code></pre>
 
+      <div class="row" id="controllers">
+        <pre class="column"><code id="c1"></code></pre>
+        <pre class="column"><code id="c2"></code></pre>
+      </div>
+
       <script src="peer.js"></script>
       <script>
+        let controllers = []
+
         const qs = document.querySelector.bind(document)
+        const qsa = document.querySelectorAll.bind(document)
 
         const id = location.search.match(/id=(.*)/)[1]
 
@@ -30,7 +38,27 @@
           log(`Peer: connected to ${id}`, {color: '#08f'})
 
           conn.on('data', function(data){
-            log(data)
+
+            const controllerData = new Float32Array(data)
+
+            // could be way more efficient with reuse
+            controllers = Array.from(
+              {length: controllerData.length / 8},
+              (_,i) => {
+                const idx = i * 8
+                return {
+                  timestamp: controllerData[idx],
+                  position: controllerData.subarray(idx + 1, idx + 4),
+                  orientation: controllerData.subarray(idx + 4, idx + 8)
+                }
+              }
+            )
+
+            ;[].forEach.call(qsa('#controllers code'), (el, i) => {
+              // console.log(i, controllers)
+              el.innerText = JSON.stringify(controllers[i] || {}, null, 2)
+            })
+
           })
 
           conn.on('close', () => {

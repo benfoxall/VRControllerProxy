@@ -14,22 +14,18 @@
   <body>
     <div class="container">
       <h1>Broadcast</h1>
-      <button id="connect">Connect Controllers</button>
+      <!-- <button id="connect">Connect Controllers</button> -->
 
       <pre><code id="log"></code></pre>
 
       <div class="row" id="controllers">
 
         <div class="column">
-          <pre id="controller-left"><code></code></pre>
+          <pre class="gamepad-data" id="controller-0"><code></code></pre>
         </div>
 
         <div class="column">
-          <pre id="controller-right"><code></code></pre>
-        </div>
-
-        <div class="column">
-          <pre id="controller-left"><code></code></pre>
+          <pre class="gamepad-data" id="controller-1"><code></code></pre>
         </div>
 
       </div>
@@ -37,6 +33,7 @@
       <script src="peer.js"></script>
       <script>
         const qs = document.querySelector.bind(document)
+        const qsa = document.querySelectorAll.bind(document)
 
         const id = location.search.match(/id=(.*)/)[1]
         var peer = new Peer(id, {host: location.hostname, port: location.port, path: '/peer'})
@@ -74,6 +71,109 @@
           log.appendChild(line)
           line.scrollIntoView()
         }
+
+
+        const gamepadElements = qsa('.gamepad-data')
+        function renderGamepads(gamepads) {
+          gamepads.forEach((gamepad, i) => {
+            if(!gamepadElements[i]) return
+
+            gamepadElements[i].innerText = JSON.stringify({
+              timestamp: gamepad.timestamp,
+              position: gamepad.pose.position,
+              orientation: gamepad.pose.orientation
+            }, null, 2)
+          })
+
+        }
+
+
+        window.addEventListener("gamepadconnected", function( event ) {
+
+            // All buttons and axes values can be accessed through
+            log("Controller detected")
+
+        })
+
+
+        // function package(array, id, position, orientation) {
+        //   array[0] = id
+        //   array.set(position, 1)
+        //   array.set(orientation, 1)
+        // }
+        //
+        // function unpackage(array) {
+        //   return {
+        //     id: array[0],
+        //     position: array,
+        //   }
+        // }
+
+        var polling
+
+        function connectControllers() {
+
+          if(!navigator.getVRDisplays)
+            return log('WebVR not supported', {background: 'red', color: '#fff'})
+
+      		navigator.getVRDisplays()
+          .then((displays) => {
+            if(!displays.length)
+              return log('No display found', {color: 'red'})
+
+            log("WebVR: Got displays")
+
+            // request frame data to kick off controllers
+            const FD = new VRFrameData()
+            displays[0].getFrameData(FD)
+
+            window.displays = displays
+          })
+          .catch(() => {
+            log('Unable to get VR Displays', {background: 'red', color: '#fff'})
+          })
+          .then(() => {
+            if(polling) return
+            log("Starting controller polling")
+            polling = true
+
+
+            const elements = qsa('.gamepad-data')
+
+            function poll(){
+              // requestAnimationFrame(poll)
+              setTimeout(requestAnimationFrame, 20, poll)
+
+              if(!conn) return
+
+              // only send gamepads with position
+              const gamepads = navigator.getGamepads()
+                .filter(gamepad => gamepad.pose && gamepad.pose.hasPosition)
+
+              const payload = new Float32Array(
+                (1 + 3 + 4) * gamepads.length
+              )
+
+              renderGamepads(gamepads)
+
+              gamepads.forEach((gamepad, i) => {
+                const at = i * 8
+                payload[at] = gamepad.timestamp
+                payload.set(gamepad.pose.position, 1 + at)
+                payload.set(gamepad.pose.orientation, 4 + at)
+              })
+
+              conn.send(payload.buffer)
+
+            }
+
+            requestAnimationFrame(poll)
+
+          })
+
+        }
+
+        connectControllers()
 
       </script>
 
