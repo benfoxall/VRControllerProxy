@@ -84,96 +84,97 @@
               orientation: gamepad.pose.orientation
             }, null, 2)
           })
-
         }
 
 
         window.addEventListener("gamepadconnected", function( event ) {
-
-            // All buttons and axes values can be accessed through
-            log("Controller detected")
-
+          log("Controller connected")
         })
 
+        // kick off VR to access controllers
+        navigator.getVRDisplays()
+        .then((displays) => {
+          if(!displays.length) return log('No display found', {color: 'red'})
 
-        // function package(array, id, position, orientation) {
-        //   array[0] = id
-        //   array.set(position, 1)
-        //   array.set(orientation, 1)
-        // }
-        //
-        // function unpackage(array) {
-        //   return {
-        //     id: array[0],
-        //     position: array,
-        //   }
-        // }
+          log("WebVR: Got displays")
 
-        var polling
+          // request frame data to kick off controllers
+          const FD = new VRFrameData()
+          displays[0].getFrameData(FD)
 
-        function connectControllers() {
-
-          if(!navigator.getVRDisplays)
-            return log('WebVR not supported', {background: 'red', color: '#fff'})
-
-      		navigator.getVRDisplays()
-          .then((displays) => {
-            if(!displays.length)
-              return log('No display found', {color: 'red'})
-
-            log("WebVR: Got displays")
-
-            // request frame data to kick off controllers
-            const FD = new VRFrameData()
-            displays[0].getFrameData(FD)
-
-            window.displays = displays
-          })
-          .catch(() => {
-            log('Unable to get VR Displays', {background: 'red', color: '#fff'})
-          })
-          .then(() => {
-            if(polling) return
-            log("Starting controller polling")
-            polling = true
+        })
+        .catch(() => log('Unable to get VR Displays', {background: 'red', color: '#fff'}) )
 
 
-            const elements = qsa('.gamepad-data')
+        function pack(gamepad, i) {
+          const array = new Float32Array(1 + 1 + 3 + 4)
 
-            function poll(){
-              // requestAnimationFrame(poll)
-              setTimeout(requestAnimationFrame, 20, poll)
+          const view = new DataView(array.buffer)
+          view.setUint8(0, i)
+          view.setFloat32(1, gamepad.timestamp)
 
-              if(!conn) return
+          array.set(gamepad.pose.position, 2)
+          array.set(gamepad.pose.orientation, 5)
 
-              // only send gamepads with position
-              const gamepads = navigator.getGamepads()
-                .filter(gamepad => gamepad.pose && gamepad.pose.hasPosition)
-
-              const payload = new Float32Array(
-                (1 + 3 + 4) * gamepads.length
-              )
-
-              renderGamepads(gamepads)
-
-              gamepads.forEach((gamepad, i) => {
-                const at = i * 8
-                payload[at] = gamepad.timestamp
-                payload.set(gamepad.pose.position, 1 + at)
-                payload.set(gamepad.pose.orientation, 4 + at)
-              })
-
-              conn.send(payload.buffer)
-
-            }
-
-            requestAnimationFrame(poll)
-
-          })
-
+          return array.buffer
         }
 
-        connectControllers()
+
+        function moved_sufficiently(gamepad, packed) {
+          if(!packed) return true
+
+          const array = new Float32Array(packed)
+
+          const position = gamepad.pose.position
+          const position_delta =
+            Math.abs(position[0] - array[2]) +
+            Math.abs(position[1] - array[3]) +
+            Math.abs(position[2] - array[4])
+
+          if(position_delta > 0.02) return true
+
+          // this is not right, but it works
+          const orientation = gamepad.pose.orientation
+          const orientation_delta =
+            Math.abs(orientation[0] - array[5]) +
+            Math.abs(orientation[1] - array[6]) +
+            Math.abs(orientation[2] - array[7])+
+            Math.abs(orientation[3] - array[8])
+
+          if(orientation_delta > 0.1) return true
+
+          return false
+        }
+
+
+        const prior = new WeakMap
+
+        function poll(t){
+          requestAnimationFrame(poll)
+
+          const gamepads = navigator.getGamepads()
+               .filter((gamepad, i) => {
+                  if(!gamepad.pose || !gamepad.pose.hasPosition)
+                    return false
+
+                  if(moved_sufficiently(gamepad, prior.get(gamepad))){
+                    const buffer = pack(gamepad, i)
+                    prior.set(gamepad, buffer)
+
+                    if(conn) conn.send(buffer)
+
+                    gamepad.hapticActuators[0].pulse(5,5)
+
+                    return true
+                  }
+               })
+
+          if(gamepads.length) {
+            renderGamepads(navigator.getGamepads())
+          }
+
+        }
+        poll()
 
       </script>
 

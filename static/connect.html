@@ -33,30 +33,47 @@
         peer.on('error', () => log('Signalling: Error'))
         peer.on('disconnected', () => log('Signalling: DISCONNECTED', {background: 'red', color: '#fff'}))
 
+
+
+
+        function unpack(buffer, gamepadList) {
+
+          const array = new Float32Array(buffer)
+          const view = new DataView(buffer)
+
+          const index = view.getUint8(0)
+          const timestamp = view.getFloat32(1)
+
+          if(gamepadList[index]) {
+            gamepadList[index]._array.set(array)
+            gamepadList[index].timestamp = timestamp
+          } else {
+            gamepadList[index] = {
+              timestamp: timestamp,
+              pose: {
+                position: array.subarray(2, 5),
+                orientation: array.subarray(5, 9)
+              },
+              _array: array
+            }
+          }
+        }
+
+        const remoteGamepads = []
+
+
+
         conn.on('open', function() {
 
           log(`Peer: connected to ${id}`, {color: '#08f'})
 
           conn.on('data', function(data){
 
-            const controllerData = new Float32Array(data)
-
-            // could be way more efficient with reuse
-            controllers = Array.from(
-              {length: controllerData.length / 8},
-              (_,i) => {
-                const idx = i * 8
-                return {
-                  timestamp: controllerData[idx],
-                  position: controllerData.subarray(idx + 1, idx + 4),
-                  orientation: controllerData.subarray(idx + 4, idx + 8)
-                }
-              }
-            )
+            unpack(data, remoteGamepads)
 
             ;[].forEach.call(qsa('#controllers code'), (el, i) => {
               // console.log(i, controllers)
-              el.innerText = JSON.stringify(controllers[i] || {}, null, 2)
+              el.innerText = JSON.stringify(remoteGamepads[i] || {}, null, 2)
             })
 
           })
