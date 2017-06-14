@@ -17,7 +17,12 @@
       </div>
 
       <script src="peer.js"></script>
+      <script src="remoteVR.js"></script>
       <script>
+
+
+
+
         let controllers = []
 
         const qs = document.querySelector.bind(document)
@@ -27,61 +32,36 @@
 
         const peer = new Peer({host: location.hostname, port: location.port, path: '/peer'})
 
-        const conn = peer.connect(id)
-
         peer.on('open', () => log(`Signalling: Connected as "${peer.id}"`, {color: 'green'}))
         peer.on('error', () => log('Signalling: Error'))
         peer.on('disconnected', () => log('Signalling: DISCONNECTED', {background: 'red', color: '#fff'}))
 
+        const conn = peer.connect(id)
 
+        remoteVR.connect(conn)
+        remoteVR.getGamepads()
 
+        let last = -1
+        function render() {
+          requestAnimationFrame(render)
 
-        function unpack(buffer, gamepadList) {
+          const gamepads = remoteVR.getGamepads()
+          const latest = gamepads.reduce((t,b) => Math.max(t, b.timestamp), last)
 
-          const array = new Float32Array(buffer)
-          const view = new DataView(buffer)
-
-          const index = view.getUint8(0)
-          const timestamp = view.getFloat32(1)
-
-          if(gamepadList[index]) {
-            gamepadList[index]._array.set(array)
-            gamepadList[index].timestamp = timestamp
-          } else {
-            gamepadList[index] = {
-              timestamp: timestamp,
-              pose: {
-                position: array.subarray(2, 5),
-                orientation: array.subarray(5, 9)
-              },
-              _array: array
-            }
-          }
-        }
-
-        const remoteGamepads = []
-
-
-
-        conn.on('open', function() {
-
-          log(`Peer: connected to ${id}`, {color: '#08f'})
-
-          conn.on('data', function(data){
-
-            unpack(data, remoteGamepads)
+          if(latest != last) {
+            console.log("rendering")
 
             ;[].forEach.call(qsa('#controllers code'), (el, i) => {
-              // console.log(i, controllers)
-              el.innerText = JSON.stringify(remoteGamepads[i] || {}, null, 2)
+              el.innerText = JSON.stringify(gamepads[i] || {}, null, 2)
             })
 
-          })
+            last = latest
+          }
+        }
+        render()
 
-          conn.on('close', () => {
-            log('Peer: closed connection', {color: 'red', fontWeight: 800})
-          })
-        })
+
+
 
 
 

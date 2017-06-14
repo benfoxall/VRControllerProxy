@@ -1,8 +1,8 @@
 {
-  "name": "VRControllerProxy",
+  "name": "remoteVR",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@github.com:benfoxall/VRControllerProxy.git",
+  "repository": "git@github.com:benfoxall/remoteVR.git",
   "author": "Ben Foxall <benfoxall@gmail.com>",
   "license": "MIT",
   "dependencies": {

@@ -121,6 +121,8 @@
 
 
         function moved_sufficiently(gamepad, packed) {
+          // return true
+
           if(!packed) return true
 
           const array = new Float32Array(packed)
@@ -131,7 +133,7 @@
             Math.abs(position[1] - array[3]) +
             Math.abs(position[2] - array[4])
 
-          if(position_delta > 0.02) return true
+          if(position_delta > 0.01) return true
 
           // this is not right, but it works
           const orientation = gamepad.pose.orientation
@@ -141,7 +143,7 @@
             Math.abs(orientation[2] - array[7])+
             Math.abs(orientation[3] - array[8])
 
-          if(orientation_delta > 0.1) return true
+          if(orientation_delta > 0.05) return true
 
           return false
         }
@@ -163,7 +165,7 @@
 
                     if(conn) conn.send(buffer)
 
-                    gamepad.hapticActuators[0].pulse(5,5)
+                    // gamepad.hapticActuators[0].pulse(5,5)
 
                     return true
                   }
