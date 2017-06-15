@@ -176,7 +176,41 @@
           }
 
         }
-        poll()
+        // poll()
+
+
+
+
+        let lastTimes = []
+        function poll2(t){
+          requestAnimationFrame(poll2)
+
+          const gamepads = navigator.getGamepads()
+               .filter((gamepad, i) => {
+                  if(!gamepad.pose || !gamepad.pose.hasPosition)
+                    return false
+
+                  if(gamepad.buttons.every(button => !button.pressed))
+                    return false
+
+                  if(lastTimes[i] != gamepad.timestamp) {
+
+                    lastTimes[i] = gamepad.timestamp
+
+                    const buffer = pack(gamepad, i)
+                    if(conn) conn.send(buffer)
+
+                    return true
+                  }
+
+               })
+
+          if(gamepads.length) {
+            renderGamepads(navigator.getGamepads())
+          }
+
+        }
+        poll2()
 
       </script>
 
