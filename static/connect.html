@@ -36,7 +36,10 @@
         peer.on('error', () => log('Signalling: Error'))
         peer.on('disconnected', () => log('Signalling: DISCONNECTED', {background: 'red', color: '#fff'}))
 
-        const conn = peer.connect(id)
+        const conn = peer.connect(id, {
+          serialization: 'none',
+          reliable: false
+        })
 
         remoteVR.connect(conn)
         remoteVR.getGamepads()
